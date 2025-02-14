@@ -3,48 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quét Mã Vạch trên Điện Thoại</title>
-    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.18.0/dist/index.min.js"></script>
+    <title>Quét Mã Vạch v9</title>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.18.0/dist/index.umd.min.js"></script>
 </head>
 <body>
 
-<h2>Quét Mã Vạch bằng Camera</h2>
-
-<video id="video" width="100%" height="auto" style="border:1px solid #ccc;"></video>
-<div>
-    <p>Mã vạch phát hiện: <span id="result"></span></p>
-</div>
+<h2>Quét Mã Vạch</h2>
+<video id="video" style="width: 100%; height: auto; border: 1px solid #ccc;"></video>
+<p><strong>Mã vạch phát hiện:</strong> <span id="result" style="color: green; font-weight: bold;"></span></p>
+<button id="restart" style="display: none;">Quét lại</button>
 
 <script>
     const codeReader = new ZXing.BrowserBarcodeReader();
+    let isScanning = true; // Biến kiểm soát quá trình quét
 
-    // Quét mã vạch từ camera
-    function startScanner() {
-        codeReader.listVideoDevices()
-            .then((videoDevices) => {
-                // Chọn camera phía sau
-                const rearCamera = videoDevices.find(device => device.deviceId);
-                
-                if (rearCamera) {
-                    codeReader.decodeFromVideoDevice(rearCamera.deviceId, 'video', (result, error) => {
-                        if (result) {
-                            // Hiển thị mã vạch phát hiện được
-                            document.getElementById('result').textContent = result.text;
-                        }
-                        if (error) {
-                            console.error(error);
-                        }
-                    });
-                } else {
-                    alert('Không tìm thấy camera trên thiết bị của bạn.');
+    async function startScanner() {
+        try {
+            const videoInputDevices = await codeReader.listVideoDevices();
+
+            if (videoInputDevices.length === 0) {
+                alert("Không tìm thấy camera. Vui lòng kiểm tra quyền truy cập!");
+                return;
+            }
+
+            // Chọn camera đầu tiên (có thể điều chỉnh để chọn camera cụ thể)
+            const selectedDeviceId = videoInputDevices[0].deviceId;
+
+            codeReader.decodeFromVideoDevice(selectedDeviceId, 'video', (result, error) => {
+                if (result && isScanning) {
+                    isScanning = false; // Ngăn quét liên tục
+                    document.getElementById('result').textContent = result.text; // Hiển thị mã vạch
+                    document.getElementById('restart').style.display = 'block'; // Hiển thị nút quét lại
+                    codeReader.reset(); // Dừng quét sau khi nhận diện thành công
                 }
-            })
-            .catch(err => {
-                console.error(err);
+
+                if (error && !(error instanceof ZXing.NotFoundException)) {
+                    console.error(error); // Chỉ in lỗi không phải "Không tìm thấy"
+                }
             });
+        } catch (error) {
+            console.error("Lỗi khi khởi tạo trình quét:", error);
+        }
     }
 
-    // Bắt đầu quét khi trang web đã tải xong
+    // Khởi động lại quá trình quét
+    document.getElementById('restart').addEventListener('click', () => {
+        document.getElementById('result').textContent = ''; // Xóa kết quả cũ
+        document.getElementById('restart').style.display = 'none'; // Ẩn nút quét lại
+        isScanning = true; // Cho phép quét lại
+        startScanner(); // Khởi động lại scanner
+    });
+
     window.onload = startScanner;
 </script>
 
