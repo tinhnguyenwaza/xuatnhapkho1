@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quét Mã Vạch trên Điện Thoại</title>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.18.0/dist/index.min.js"></script>
+</head>
+<body>
+
+<h2>Quét Mã Vạch bằng Camera</h2>
+
+<video id="video" width="100%" height="auto" style="border:1px solid #ccc;"></video>
+<div>
+    <p>Mã vạch phát hiện: <span id="result"></span></p>
+</div>
+
+<script>
+    const codeReader = new ZXing.BrowserBarcodeReader();
+
+    // Quét mã vạch từ camera
+    function startScanner() {
+        codeReader.listVideoDevices()
+            .then((videoDevices) => {
+                // Chọn camera phía sau
+                const rearCamera = videoDevices.find(device => device.deviceId);
+                
+                if (rearCamera) {
+                    codeReader.decodeFromVideoDevice(rearCamera.deviceId, 'video', (result, error) => {
+                        if (result) {
+                            // Hiển thị mã vạch phát hiện được
+                            document.getElementById('result').textContent = result.text;
+                        }
+                        if (error) {
+                            console.error(error);
+                        }
+                    });
+                } else {
+                    alert('Không tìm thấy camera trên thiết bị của bạn.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+            });
+    }
+
+    // Bắt đầu quét khi trang web đã tải xong
+    window.onload = startScanner;
+</script>
+
+</body>
+</html>
