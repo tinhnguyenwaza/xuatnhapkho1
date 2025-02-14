@@ -1,61 +1,117 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quét Mã Vạch v9</title>
-    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.18.0/dist/index.umd.min.js"></script>
-</head>
-<body>
-
-<h2>Quét Mã Vạch</h2>
-<video id="video" style="width: 100%; height: auto; border: 1px solid #ccc;"></video>
-<p><strong>Mã vạch phát hiện:</strong> <span id="result" style="color: green; font-weight: bold;"></span></p>
-<button id="restart" style="display: none;">Quét lại</button>
-
-<script>
-    const codeReader = new ZXing.BrowserBarcodeReader();
-    let isScanning = true; // Biến kiểm soát quá trình quét
-
-    async function startScanner() {
-        try {
-            const videoInputDevices = await codeReader.listVideoDevices();
-
-            if (videoInputDevices.length === 0) {
-                alert("Không tìm thấy camera. Vui lòng kiểm tra quyền truy cập!");
-                return;
-            }
-
-            // Chọn camera đầu tiên (có thể điều chỉnh để chọn camera cụ thể)
-            const selectedDeviceId = videoInputDevices[0].deviceId;
-
-            codeReader.decodeFromVideoDevice(selectedDeviceId, 'video', (result, error) => {
-                if (result && isScanning) {
-                    isScanning = false; // Ngăn quét liên tục
-                    document.getElementById('result').textContent = result.text; // Hiển thị mã vạch
-                    document.getElementById('restart').style.display = 'block'; // Hiển thị nút quét lại
-                    codeReader.reset(); // Dừng quét sau khi nhận diện thành công
-                }
-
-                if (error && !(error instanceof ZXing.NotFoundException)) {
-                    console.error(error); // Chỉ in lỗi không phải "Không tìm thấy"
-                }
-            });
-        } catch (error) {
-            console.error("Lỗi khi khởi tạo trình quét:", error);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barcode Scanner</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+  <style>
+    #scanner-container {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      border: 2px solid #ccc;
+      margin: 20px auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
     }
 
-    // Khởi động lại quá trình quét
-    document.getElementById('restart').addEventListener('click', () => {
-        document.getElementById('result').textContent = ''; // Xóa kết quả cũ
-        document.getElementById('restart').style.display = 'none'; // Ẩn nút quét lại
-        isScanning = true; // Cho phép quét lại
-        startScanner(); // Khởi động lại scanner
+    video {
+      max-width: 100%;
+      height: auto;
+    }
+
+    #frame {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 80%;
+      height: 30%;
+      transform: translate(-50%, -50%);
+      border: 3px dashed red;
+      box-sizing: border-box;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    #output {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 18px;
+    }
+
+    button {
+      display: block;
+      margin: 10px auto;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align: center;">Barcode Scanner V10</h1>
+  <div id="scanner-container">
+    <div id="frame"></div>
+  </div>
+  <button id="start-button">Bắt đầu quét</button>
+  <div id="output">Mã đã quét: <span id="result">Chưa có</span></div>
+
+  <script>
+    let isScanning = false;
+
+    // Hàm khởi tạo QuaggaJS
+    function startScanner() {
+      Quagga.init({
+        inputStream: {
+          type: "LiveStream",
+          target: document.querySelector("#scanner-container"),
+          constraints: {
+            width: 640,
+            height: 480,
+            facingMode: "environment", // Sử dụng camera sau
+          }
+        },
+        decoder: {
+          readers: ["code_128_reader", "ean_reader"] // Chỉ quét mã Code-128 và EAN
+        }
+      }, function(err) {
+        if (err) {
+          console.error(err);
+          return;
+        }
+        console.log("QuaggaJS initialized.");
+        Quagga.start();
+        isScanning = true; // Đặt trạng thái đang quét
+      });
+    }
+
+    // Hàm dừng QuaggaJS
+    function stopScanner() {
+      if (isScanning) {
+        Quagga.stop();
+        isScanning = false; // Đặt trạng thái không quét
+      }
+    }
+
+    // Xử lý kết quả khi quét mã thành công
+    Quagga.onDetected(function(data) {
+      const code = data.codeResult.code;
+      document.getElementById("result").textContent = code; // Hiển thị mã vạch
+      console.log("Barcode detected: ", code);
+
+      stopScanner(); // Dừng camera sau khi quét thành công
     });
 
-    window.onload = startScanner;
-</script>
-
+    // Bắt sự kiện nhấn nút "Bắt đầu quét"
+    document.getElementById("start-button").addEventListener("click", function() {
+      if (!isScanning) {
+        document.getElementById("result").textContent = "Đang quét..."; // Cập nhật trạng thái
+        startScanner(); // Khởi chạy camera
+      }
+    });
+  </script>
 </body>
 </html>
