@@ -6,37 +6,78 @@
     <title>Quét mã QR trên Web</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
         #reader {
             width: 100%;
             max-width: 500px;
-            margin: auto;
+            margin: 10px auto;
+            display: none; /* Ẩn camera ban đầu */
+        }
+        #result {
+            font-size: 18px;
+            font-weight: bold;
+            color: green;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
     <h2>Quét mã QR</h2>
+    <button id="startScan">Bắt đầu quét</button>
+    <button id="stopScan" disabled>Dừng quét</button>
+
     <div id="reader"></div>
     <p><strong>Kết quả:</strong> <span id="result"></span></p>
 
     <script>
-        function onScanSuccess(decodedText, decodedResult) {
-            document.getElementById('result').innerText = decodedText;
-        }
-
-        function onScanFailure(error) {
-            console.warn(`Quét thất bại: ${error}`);
-        }
-
         let html5QrCode = new Html5Qrcode("reader");
-        html5QrCode.start(
-            { facingMode: "environment" }, // Sử dụng camera sau nếu có
-            {
-                fps: 10,    // Tốc độ quét (frame per second)
-                qrbox: 250  // Kích thước vùng quét
-            },
-            onScanSuccess,
-            onScanFailure
-        );
+        let isScanning = false;
+
+        function onScanSuccess(decodedText) {
+            document.getElementById('result').innerText = decodedText;
+            stopScanning(); // Dừng quét sau khi đọc mã thành công
+        }
+
+        function startScanning() {
+            if (isScanning) return;
+
+            document.getElementById('reader').style.display = "block";
+            document.getElementById('startScan').disabled = true;
+            document.getElementById('stopScan').disabled = false;
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: 250
+                },
+                onScanSuccess
+            ).catch(err => console.error("Lỗi khi khởi động quét: ", err));
+
+            isScanning = true;
+        }
+
+        function stopScanning() {
+            if (!isScanning) return;
+
+            html5QrCode.stop().then(() => {
+                document.getElementById('reader').style.display = "none";
+                document.getElementById('startScan').disabled = false;
+                document.getElementById('stopScan').disabled = true;
+                isScanning = false;
+            }).catch(err => console.error("Lỗi khi dừng quét: ", err));
+        }
+
+        document.getElementById('startScan').addEventListener("click", startScanning);
+        document.getElementById('stopScan').addEventListener("click", stopScanning);
     </script>
 </body>
 </html>
